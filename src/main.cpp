@@ -5,6 +5,7 @@
 
 #include "functions.h"
 #include "sound/play.h"
+#include "communication/usocket.h"
 
 using namespace std;
 
@@ -26,6 +27,10 @@ int main() {
   // Actual program
   readConfig();
 
-  playFile("music.wav");
+  createSocket();
+  while(true) {
+    listenSocket();
+  }
+  //playFile("music.wav");
 
 }

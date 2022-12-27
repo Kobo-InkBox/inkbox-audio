@@ -84,6 +84,7 @@ void playFile(string filePath) {
   log("Frames are: " + to_string(frames), emitter);
 
   std::ifstream file(filePath, std::ios::binary);
+  file.seekg(44, ios::beg);
 
   short buffer[channels * frames];
   while (file.read(reinterpret_cast<char *>(buffer), sizeof(buffer))) {

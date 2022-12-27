@@ -13,6 +13,8 @@ string emitter = "functions";
 // Global variables
 bool logEnabled = false;
 
+string socketPath = "/dev/iaudio.socket";
+
 // Sound variables
 // Those 2 need to be set just because to be sure its correct.
 unsigned int rate;

@@ -20,8 +20,7 @@ sshpass -p $passwd ssh $servername "bash -c \"ifsctl mnt rootfs rw\""
 sshpass -p $passwd ssh $servername "bash -c \"rm /inkaudio\""
 
 sshpass -p $passwd ssh $servername "bash -c \"killall -9 inkaudio\""
-#sshpass -p $passwd ssh $servername "bash -c \"service ipd stop\""
-sshpass -p $passwd ssh $servername "bash -c \"killall -9 inkaudio\""
+sshpass -p $passwd ssh $servername "bash -c \"rm /dev/iaudio.socket\""
 
 sshpass -p $passwd scp build/inkaudio $servername:/
 
