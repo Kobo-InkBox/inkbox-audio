@@ -1,0 +1,12 @@
+extract packages into the toolchain:
+- /home/build/inkbox/kernel/toolchain/armv7l-linux-musleabihf-cross/
+- /home/build/inkbox/kernel/toolchain/armv7l-linux-musleabihf-cross/armv7l-linux-musleabihf/
+
+and well install on the device with apk add:
+alsa-lib alsa-lib-dev alsa-utils musl
+
+
+https://github.com/Szybet/niAudio/blob/main/apps-on-kobo/compile-libsndfile.md
+
+copy the libs to toolchain and to the device too, in prebuild/libs/:
+scp * root@10.42.0.28:/lib/

@@ -1,11 +1,11 @@
+#include <cstring>
 #include <iostream>
 #include <pthread.h>
 #include <string>
-#include <cstring>
 
+#include "communication/usocket.h"
 #include "functions.h"
 #include "sound/play.h"
-#include "communication/usocket.h"
 
 using namespace std;
 
@@ -28,9 +28,5 @@ int main() {
   readConfig();
 
   createSocket();
-  while(true) {
-    listenSocket();
-  }
-  //playFile("music.wav");
-
+  listenSocket();
 }

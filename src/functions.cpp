@@ -15,11 +15,15 @@ bool logEnabled = false;
 
 string socketPath = "/dev/iaudio.socket";
 
-// Sound variables
-// Those 2 need to be set just because to be sure its correct.
-unsigned int rate;
-unsigned int channels;
-//
+bool pausePlay = false;
+bool continuePlay = false;
+unsigned int fileOffsetPause = 0;
+string recentFile = "";
+bool isPLaying = false;
+bool threadToBeJoined = false;
+bool canBeContinued = false;;
+// config
+string mixerName;
 
 // Functions
 void log(string toLog, string emitter) {
@@ -31,7 +35,6 @@ void log(string toLog, string emitter) {
                           " | " + emitter + ": " + toLog;
     std::cout << message << std::endl;
 
-    // TODO: Improve efficiency (don't close it every time)
     ofstream logFile("/var/log/inkaudio.log", ios::app);
     logFile << message << std::endl;
     logFile.close();
@@ -49,9 +52,7 @@ the executable name of variable=value to set
 
 Order is important, just as in example
 
-so example:
-rate=48000
-channels=2
+mixer=Speaker
 
 */
 
@@ -64,30 +65,14 @@ void readConfig() {
   while (getline(file, line)) {
     log(to_string(countLine) + " line contains: " + line, emitter);
     if (countLine == 0) {
-      string varToLook = "rate";
+      string varToLook = "mixer";
       if (normalContains(line, varToLook) == true) {
         vector<string> vectorToParse;
         boost::split(vectorToParse, line, boost::is_any_of("="),
                      boost::token_compress_on);
 
-        rate = stoi(vectorToParse.back());
-        log("Variable " + varToLook + " equals: " + to_string(rate));
-      } else {
-        log("Config misses " + varToLook + " at line " + to_string(countLine) +
-                ", exiting",
-            emitter);
-        exit(-1);
-      }
-    }
-    if (countLine == 1) {
-      string varToLook = "channels";
-      if (normalContains(line, varToLook) == true) {
-        vector<string> vectorToParse;
-        boost::split(vectorToParse, line, boost::is_any_of("="),
-                     boost::token_compress_on);
-
-        channels = stoi(vectorToParse.back());
-        log("Variable " + varToLook + " equals: " + to_string(channels), emitter);
+        mixerName = vectorToParse.back();
+        log("Variable " + varToLook + " equals: " + mixerName, emitter);
       } else {
         log("Config misses " + varToLook + " at line " + to_string(countLine) +
             ", exiting");
@@ -105,3 +90,39 @@ bool normalContains(string stringToCheck, string stringToLookFor) {
     return false;
   }
 }
+
+// Depracated, those variables should be taken from a file, and they are.
+// Let it be here for an example of code
+/*
+if (countLine == 0) {
+  string varToLook = "rate";
+  if (normalContains(line, varToLook) == true) {
+    vector<string> vectorToParse;
+    boost::split(vectorToParse, line, boost::is_any_of("="),
+                 boost::token_compress_on);
+
+    rate = stoi(vectorToParse.back());
+    log("Variable " + varToLook + " equals: " + to_string(rate));
+  } else {
+    log("Config misses " + varToLook + " at line " + to_string(countLine) +
+            ", exiting",
+        emitter);
+    exit(-1);
+  }
+}
+if (countLine == 1) {
+  string varToLook = "channels";
+  if (normalContains(line, varToLook) == true) {
+    vector<string> vectorToParse;
+    boost::split(vectorToParse, line, boost::is_any_of("="),
+                 boost::token_compress_on);
+
+    channels = stoi(vectorToParse.back());
+    log("Variable " + varToLook + " equals: " + to_string(channels),
+emitter); } else { log("Config misses " + varToLook + " at line " +
+to_string(countLine) +
+        ", exiting");
+    exit(-1);
+  }
+}
+*/

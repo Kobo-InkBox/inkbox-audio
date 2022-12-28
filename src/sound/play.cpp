@@ -8,18 +8,29 @@
 #include "../functions.h"
 #include "play.h"
 
+// libsndfile
+#include <sndfile.h>
+#include <unistd.h>
+
 using namespace std;
 
-extern unsigned int rate;
-extern unsigned int channels;
+extern bool pausePlay;
+extern unsigned int fileOffsetPause;
+extern bool continuePlay;
+extern string recentFile;
+extern bool isPLaying;
+extern bool threadToBeJoined;
+extern bool canBeContinued;
+
+// config
+extern string mixerName;
 
 const string emitter = "play";
 
 void playFile(string filePath) {
   // https://gist.github.com/ghedo/963382/
   log("Playing file: " + filePath, emitter);
-  log("Channels:" + to_string(channels));
-  log("Rate:" + to_string(rate));
+  recentFile = filePath;
 
   int pcm;
   snd_pcm_t *pcm_handle;
@@ -31,9 +42,22 @@ void playFile(string filePath) {
   if (pcm < 0)
     log("Failed to open device", emitter);
 
-  // Set default parameters
+  // Get default parameters
   snd_pcm_hw_params_alloca(&params);
   snd_pcm_hw_params_any(pcm_handle, params);
+
+  // Get informations from wav file using library
+  unsigned int rate;
+  unsigned int channels;
+  SF_INFO sfinfo;
+  SNDFILE *wavFile = sf_open(filePath.c_str(), SFM_READ, &sfinfo);
+  rate = sfinfo.samplerate;
+  channels = sfinfo.channels;
+  sf_close(wavFile);
+
+  log("Informations from wav file:", emitter);
+  log("Rate:" + to_string(rate), emitter);
+  log("Channels:" + to_string(channels), emitter);
 
   // Apply them
   pcm = snd_pcm_hw_params_set_access(pcm_handle, params,
@@ -84,22 +108,86 @@ void playFile(string filePath) {
   log("Frames are: " + to_string(frames), emitter);
 
   std::ifstream file(filePath, std::ios::binary);
-  file.seekg(44, ios::beg);
+  file.seekg(44, ios::beg); // meta info
+  if (continuePlay == true) {
+    continuePlay = false;
+    file.seekg(fileOffsetPause, ios::beg);
+  } else {
+    fileOffsetPause = 44;
+    file.seekg(44, ios::beg);
+  }
 
   short buffer[channels * frames];
   while (file.read(reinterpret_cast<char *>(buffer), sizeof(buffer))) {
     snd_pcm_sframes_t framesWritten =
         snd_pcm_writei(pcm_handle, buffer, frames);
-    // log("Frames written: " + to_string(framesWritten), emitter);
+
+    fileOffsetPause = fileOffsetPause + sizeof(buffer);
+    if (pausePlay == true) {
+      // Stop now
+      snd_pcm_drop(pcm_handle);
+      break;
+    }
+
     if (framesWritten < 0) {
-      log("An error?");
+      log("Error while playing audio");
     }
   }
 
-  snd_pcm_drain(pcm_handle);
+  if (pausePlay == true) {
+    pausePlay = false;
+    canBeContinued = true;
+  } else {
+    // Wait for it to finish
+    snd_pcm_drain(pcm_handle);
+    threadToBeJoined = true;
+  }
   snd_pcm_close(pcm_handle);
+  isPLaying = false;
+  while (threadToBeJoined == true) {
+    sleep(1);
+  }
+  // Lazy thread management and free delay for music
+  sleep(2);
+  return void();
 }
 
-// lack of special kernek
-// those file are needed in toolchain add them
-// git ignore too
+// Should be from 0 - 100, if the sound card is weird, then implement a
+// converter. I don't need to
+void setVolumeLevel(int level) {
+  log("Setting volume to " + to_string(level));
+  // Open the mixer
+  snd_mixer_t *mixer;
+  snd_mixer_open(&mixer, 0);
+
+  // Attach the mixer to the default sound card
+  snd_mixer_attach(mixer, "default");
+
+  // Register the mixer
+  snd_mixer_selem_register(mixer, NULL, NULL);
+
+  // Load the mixer elements
+  snd_mixer_load(mixer);
+
+  // For every device mixerName is diffrent, so its set in config file
+  snd_mixer_elem_t *elem = snd_mixer_first_elem(mixer);
+  while (elem != NULL) {
+    log("Mixer: " + string(snd_mixer_selem_get_name(elem)), emitter);
+    if (snd_mixer_selem_is_active(elem) &&
+        snd_mixer_selem_get_name(elem) == mixerName) {
+      break;
+    }
+    elem = snd_mixer_elem_next(elem);
+  }
+
+  // Set the volume level of the "Master" mixer element
+  long min, max;
+  snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
+  log("Min volume: " + to_string(min));
+  log("Max volume: " + to_string(max));
+
+  snd_mixer_selem_set_playback_volume_all(elem, level);
+
+  // Close the mixer
+  snd_mixer_close(mixer);
+}
