@@ -51,7 +51,7 @@ void createSocket() {
 /*
 Messages:
 // Play command combines the path with "/data/onboard/" so example:
-play:"musicFolder/audioFile.wav" play:"/path/to/file"
+play:"musicFolder/audioFile.wav" play:"/path/to/file" ( on the CLI, "" are ignored unless \"\")
 
 pause:
 continue:
@@ -101,13 +101,13 @@ void listenSocket() {
         }
       }
     }
-    log("Message is: \"" + message + "\"", emitter);
-    log("Command is: \"" + command + "\"", emitter);
+    log("Message is: *" + message + "*", emitter);
+    log("Command is: *" + command + "*", emitter);
 
     if (command == "play") {
       log("Found play command");
       string musicFilePath = "/data/onboard/";
-      musicFilePath = musicFilePath + message.substr(5 + 1, message.size() - 5 - 1); // " characters are those 1, the last 1 is because size() is not position
+      musicFilePath = musicFilePath + message.substr(5 + 1, message.size() - 5 - 1 - 1); // " characters are those 1, the last 1 is because size() is not position
       log("Music file path: " + musicFilePath);
       ifstream file(musicFilePath.c_str());
       if (file.good() == true) {
