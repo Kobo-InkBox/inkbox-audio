@@ -78,10 +78,11 @@ void listenSocket() {
     log("Receiving bytes");
     char buffer_tmp[1];
     vector<char> buffer;
+    buffer.reserve(30);
 
     // This isin't efficient
-    ssize_t n;
-    while ((n = recv(client_sockfd, buffer_tmp, 1, 0)) > 0) {
+    while (recv(client_sockfd, buffer_tmp, 1, 0) > 0) {
+      log("While loop going...", emitter);
       buffer.push_back(buffer_tmp[0]);
     }
 
@@ -106,7 +107,7 @@ void listenSocket() {
     if (command == "play") {
       log("Found play command");
       string musicFilePath = "/data/onboard/";
-      musicFilePath = musicFilePath + message.substr(5, message.size());
+      musicFilePath = musicFilePath + message.substr(5 + 1, message.size() - 5 - 1); // " characters are those 1, the last 1 is because size() is not position
       log("Music file path: " + musicFilePath);
       ifstream file(musicFilePath.c_str());
       if (file.good() == true) {
