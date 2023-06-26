@@ -27,12 +27,4 @@ sshpass -p $passwd scp build/inkaudio $servername:/
 sshpass -p $passwd ssh $servername "bash -c \"sync\""
 
 # Normal launch
-#sshpass -p $passwd ssh $servername "bash -c \"/usr/bin/env DEBUG=true /inkaudio\""
-
-# For chroot
-#sshpass -p $passwd ssh $servername "bash -c \"rm /kobo/inkbox-power-deamon\""
-#sshpass -p $passwd ssh $servername "bash -c \"mv /inkbox-power-deamon /kobo/\""
-#shpass -p $passwd ssh $servername "chroot /kobo sh -c \"DEBUG=true /inkbox-power-deamon\""
-
-# Reconnect to wifi
-# /usr/local/bin/wifi/connect_to_network.sh hotspot 12345678
+sshpass -p $passwd ssh $servername "bash -c \"/usr/bin/env DEBUG=true /inkaudio\""
