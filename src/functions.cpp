@@ -21,7 +21,8 @@ unsigned int fileOffsetPause = 0;
 string recentFile = "";
 bool isPLaying = false;
 bool threadToBeJoined = false;
-bool canBeContinued = false;;
+mutex overAllMutex; // Used for everything
+bool canBeContinued = false;
 // config
 string mixerName;
 
@@ -58,6 +59,13 @@ mixer=Speaker
 
 void readConfig() {
   ifstream file("iaudio.conf");
+
+  if(file.good() == false) {
+    log("Config is missing, using default values", emitter);
+    mixerName = "Speaker";
+    return void();
+  }
+
   string line;
   int countLine = 0;
   // This could be in a big for loop with a fancy struct, but no reason to over

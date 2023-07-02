@@ -8,6 +8,7 @@
 #include <sys/un.h>
 #include <thread>
 #include <vector>
+#include <experimental/filesystem>
 
 #include "../functions.h"
 #include "../sound/play.h"
@@ -24,11 +25,17 @@ extern string recentFile;
 extern bool isPLaying;
 extern bool threadToBeJoined;
 extern bool canBeContinued;
+extern mutex overAllMutex;
 
 int sockfd;
 struct sockaddr_un addr;
 
 void createSocket() {
+  if(ifstream(socketPath).good() == true) {
+    log("Socket already exists. Service should have deleted it", emitter);
+    exit(-1);
+  }
+
   // Create the socket.
   sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
   if (sockfd < 0) {
@@ -44,7 +51,7 @@ void createSocket() {
   if (bind(sockfd, (struct sockaddr *)&addr, sizeof(struct sockaddr_un)) < 0) {
     log("Error binding socket", emitter);
   } else {
-    log("Created socket");
+    log("Created socket", emitter);
   }
 }
 
@@ -75,7 +82,7 @@ void listenSocket() {
       log("New client", emitter);
     }
 
-    log("Receiving bytes");
+    log("Receiving bytes", emitter);
     char buffer_tmp[1];
     vector<char> buffer;
     buffer.reserve(30);
@@ -105,52 +112,70 @@ void listenSocket() {
     log("Command is: *" + command + "*", emitter);
 
     if (command == "play") {
-      log("Found play command");
+      log("Found play command", emitter);
       string musicFilePath = "/data/onboard/";
       musicFilePath = musicFilePath + message.substr(5 + 1, message.size() - 5 - 1 - 1); // " characters are those 1, the last 1 is because size() is not position
       log("Music file path: " + musicFilePath);
       ifstream file(musicFilePath.c_str());
       if (file.good() == true) {
+        overAllMutex.lock();
+        bool lockedMutex1 = true;
         canBeContinued = false;
         if (isPLaying == true) {
-          log("File is playing, pausing ( stopping ) it");
+          log("File is playing, pausing ( stopping ) it", emitter);
           pausePlay = true;
+          lockedMutex1 = false;
+          overAllMutex.unlock();
           audio.join();
         }
         if (threadToBeJoined == true) {
-          log("File ended playing, now joining threads");
+          log("File ended playing, now joining threads", emitter);
           threadToBeJoined = false;
+          lockedMutex1 = false;
+          overAllMutex.unlock();
           audio.join();
         }
-        log("File exists");
+        
+        log("File exists", emitter);
+        isPLaying = true; // Doesnt need mutex - thread doesn't exists yet
+        if(lockedMutex1 == true) {
+          overAllMutex.unlock();
+        }
         audio = thread(playFile, musicFilePath);
-        isPLaying = true;
       } else {
-        log("File doesn't exist");
+        log("File doesn't exist", emitter);
       }
     }
     if (command == "pause") {
+      overAllMutex.lock();
       if (isPLaying == true) {
-        log("Found pause command");
+        log("Found pause command", emitter);
         pausePlay = true;
+        overAllMutex.unlock();
         audio.join();
+        overAllMutex.lock();
         isPLaying = false;
+        overAllMutex.unlock();
       } else {
         log("Can't pause", emitter);
+        overAllMutex.unlock();
       }
     }
     if (command == "continue") {
       log("Found continue command");
+      overAllMutex.lock();
       if (isPLaying == false and canBeContinued == true) {
         continuePlay = true;
         canBeContinued = false;
+        overAllMutex.unlock();
         audio = thread(playFile, recentFile);
       } else {
         log("Can't continue", emitter);
+        overAllMutex.unlock();
       }
     }
     if (command == "set_volume") {
-      log("Found set_volume command");
+      log("Found set_volume command", emitter);
       vector<string> vectorToParse;
       boost::split(vectorToParse, message, boost::is_any_of(":"),
                    boost::token_compress_on);

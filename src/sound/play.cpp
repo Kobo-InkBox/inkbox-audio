@@ -21,6 +21,7 @@ extern string recentFile;
 extern bool isPLaying;
 extern bool threadToBeJoined;
 extern bool canBeContinued;
+extern mutex overAllMutex;
 
 // config
 extern string mixerName;
@@ -109,6 +110,7 @@ void playFile(string filePath) {
 
   std::ifstream file(filePath, std::ios::binary);
   file.seekg(44, ios::beg); // meta info
+  overAllMutex.lock();
   if (continuePlay == true) {
     continuePlay = false;
     file.seekg(fileOffsetPause, ios::beg);
@@ -116,6 +118,7 @@ void playFile(string filePath) {
     fileOffsetPause = 44;
     file.seekg(44, ios::beg);
   }
+  overAllMutex.unlock();
 
   short buffer[channels * frames];
   while (file.read(reinterpret_cast<char *>(buffer), sizeof(buffer))) {
@@ -123,17 +126,22 @@ void playFile(string filePath) {
         snd_pcm_writei(pcm_handle, buffer, frames);
 
     fileOffsetPause = fileOffsetPause + sizeof(buffer);
+    overAllMutex.lock();
     if (pausePlay == true) {
+      log("Stopping playing because of request", emitter);
+      overAllMutex.unlock();
       // Stop now
       snd_pcm_drop(pcm_handle);
       break;
     }
+    overAllMutex.unlock();
 
     if (framesWritten < 0) {
-      log("Error while playing audio");
+      log("Error while playing audio", emitter);
     }
   }
 
+  overAllMutex.lock();
   if (pausePlay == true) {
     pausePlay = false;
     canBeContinued = true;
@@ -142,10 +150,19 @@ void playFile(string filePath) {
     snd_pcm_drain(pcm_handle);
     threadToBeJoined = true;
   }
+
   snd_pcm_close(pcm_handle);
   isPLaying = false;
-  while (threadToBeJoined == true) {
+  overAllMutex.unlock();
+  while (true) {
+    log("Waiting for thread to be started joining", emitter);
     sleep(1);
+    overAllMutex.lock();
+    if(threadToBeJoined == false) {
+      overAllMutex.unlock();
+      break;
+    }
+    overAllMutex.unlock();
   }
   // Lazy thread management and free delay for music
   sleep(2);
