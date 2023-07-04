@@ -172,7 +172,7 @@ void playFile(string filePath) {
 // Should be from 0 - 100, if the sound card is weird, then implement a
 // converter. I don't need to
 void setVolumeLevel(int level) {
-  log("Setting volume to " + to_string(level));
+  log("Setting volume to " + to_string(level), emitter);
   // Open the mixer
   snd_mixer_t *mixer;
   snd_mixer_open(&mixer, 0);
@@ -199,12 +199,17 @@ void setVolumeLevel(int level) {
 
   // Set the volume level of the "Master" mixer element
   long min, max;
-  snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
-  log("Min volume: " + to_string(min));
-  log("Max volume: " + to_string(max));
+  if(elem != NULL) {
+    snd_mixer_selem_get_playback_volume_range(elem, &min, &max);
+    log("Min volume: " + to_string(min));
+    log("Max volume: " + to_string(max));
 
-  snd_mixer_selem_set_playback_volume_all(elem, level);
+    snd_mixer_selem_set_playback_volume_all(elem, level);
 
-  // Close the mixer
-  snd_mixer_close(mixer);
+    // Close the mixer
+    snd_mixer_close(mixer);
+  }
+  else {
+    log("Failed to set volume: Device propably not available", emitter);
+  }
 }

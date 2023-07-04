@@ -85,11 +85,11 @@ void listenSocket() {
     log("Receiving bytes", emitter);
     char buffer_tmp[1];
     vector<char> buffer;
-    buffer.reserve(30);
+    buffer.reserve(100);
 
     // This isin't efficient
     while (recv(client_sockfd, buffer_tmp, 1, 0) > 0) {
-      log("While loop going...", emitter);
+      // log("While loop going...", emitter);
       buffer.push_back(buffer_tmp[0]);
     }
 
