@@ -115,7 +115,7 @@ void listenSocket() {
       log("Found play command", emitter);
       string musicFilePath = "/data/onboard/";
       musicFilePath = musicFilePath + message.substr(5 + 1, message.size() - 5 - 1 - 1); // " characters are those 1, the last 1 is because size() is not position
-      log("Music file path: " + musicFilePath);
+      log("Music file path: " + musicFilePath, emitter);
       ifstream file(musicFilePath.c_str());
       if (file.good() == true) {
         overAllMutex.lock();

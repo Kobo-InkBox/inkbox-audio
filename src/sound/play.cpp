@@ -121,6 +121,9 @@ void playFile(string filePath) {
   overAllMutex.unlock();
 
   short buffer[channels * frames];
+  overAllMutex.lock();
+  isPLaying = true; // To be sure?
+  overAllMutex.unlock();
   while (file.read(reinterpret_cast<char *>(buffer), sizeof(buffer))) {
     snd_pcm_sframes_t framesWritten =
         snd_pcm_writei(pcm_handle, buffer, frames);
@@ -166,6 +169,7 @@ void playFile(string filePath) {
   }
   // Lazy thread management and free delay for music
   sleep(2);
+  log("Exiting play thread", emitter);
   return void();
 }
 
