@@ -109,21 +109,30 @@ void playFile(string filePath) {
   log("Frames are: " + to_string(frames), emitter);
 
   std::ifstream file(filePath, std::ios::binary);
+  if(file.good() == false) {
+    log("File is not good in play? that's bad", emitter);
+    return void();
+  }
   file.seekg(44, ios::beg); // meta info
+  log("Locking mutex to check if paused...", emitter);
   overAllMutex.lock();
   if (continuePlay == true) {
     continuePlay = false;
     file.seekg(fileOffsetPause, ios::beg);
   } else {
     fileOffsetPause = 44;
-    file.seekg(44, ios::beg);
+    // In theory, it should be 44
+    // In practice, it outputs garbage, so now your ears won't hear the first 100 bytes, oh no...
+    file.seekg(150, ios::beg);
   }
   overAllMutex.unlock();
+  log("File offset choosed, starting playing", emitter);
 
   short buffer[channels * frames];
   overAllMutex.lock();
   isPLaying = true; // To be sure?
   overAllMutex.unlock();
+  log("Entering loop", emitter);
   while (file.read(reinterpret_cast<char *>(buffer), sizeof(buffer))) {
     snd_pcm_sframes_t framesWritten =
         snd_pcm_writei(pcm_handle, buffer, frames);
@@ -182,23 +191,32 @@ void setVolumeLevel(int level) {
   snd_mixer_open(&mixer, 0);
 
   // Attach the mixer to the default sound card
+  log("Attaching to sound card", emitter);
   snd_mixer_attach(mixer, "default");
 
   // Register the mixer
+  log("Registering mixer", emitter);
   snd_mixer_selem_register(mixer, NULL, NULL);
 
   // Load the mixer elements
+  log("Loading mixer", emitter);
   snd_mixer_load(mixer);
 
   // For every device mixerName is diffrent, so its set in config file
   snd_mixer_elem_t *elem = snd_mixer_first_elem(mixer);
-  while (elem != NULL) {
-    log("Mixer: " + string(snd_mixer_selem_get_name(elem)), emitter);
-    if (snd_mixer_selem_is_active(elem) &&
-        snd_mixer_selem_get_name(elem) == mixerName) {
-      break;
+  if(elem != NULL) {
+    while (elem != NULL) {
+      log("Mixer: " + string(snd_mixer_selem_get_name(elem)), emitter);
+      if (snd_mixer_selem_is_active(elem) && snd_mixer_selem_get_name(elem) == mixerName) {
+        log("Mixer selected", emitter);
+        break;
+      }
+      elem = snd_mixer_elem_next(elem);
     }
-    elem = snd_mixer_elem_next(elem);
+  }
+  else {
+    log("Mixer elem error", emitter);
+    return void();
   }
 
   // Set the volume level of the "Master" mixer element
@@ -216,4 +234,5 @@ void setVolumeLevel(int level) {
   else {
     log("Failed to set volume: Device propably not available", emitter);
   }
+  log("Exiting to set volume", emitter);
 }
