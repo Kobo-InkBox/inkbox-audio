@@ -1,0 +1,22 @@
+#!/sbin/openrc-run
+
+description="Launches InkAudio"
+
+depend() {
+	keyword -prefix -lxc
+	before inkbox_gui gui_apps
+	after modules_init usbnet splash onboard_mount
+}
+
+start() {
+	ebegin "Starting InkAudio"
+	rm /dev/iaudio.socket
+	/usr/local/bin/inkaudio.sh &
+	eend ${?}
+}
+
+stop() {
+	ebegin "Stopping InkAudio"
+	killall -9 inkaudio
+	eend ${?}
+}
